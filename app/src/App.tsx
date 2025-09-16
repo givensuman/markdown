@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import MarkdownEditor from '@/components/MarkdownEditor'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
@@ -80,6 +82,12 @@ export default function App() {
   })
   const previewRef = useRef<HTMLDivElement | null>(null)
   const editorRef = useRef<HTMLTextAreaElement | null>(null)
+  
+  // Track modified files and dialog state
+  const [modifiedFiles, setModifiedFiles] = useState<Set<string>>(new Set())
+  const [showCloseDialog, setShowCloseDialog] = useState(false)
+  const [fileToClose, setFileToClose] = useState<string | null>(null)
+  const [disablePrompt, setDisablePrompt] = useState(false)
 
   // Removed Monaco theme setup
 
@@ -93,7 +101,19 @@ export default function App() {
 
   const onChange = useCallback((value?: string) => {
     const newValue = value ?? ''
-    setFiles((prev) => prev.map((f) => (f.id === (activeFile?.id ?? '') ? { ...f, content: newValue } : f)))
+    const fileId = activeFile?.id ?? ''
+    setFiles((prev) => prev.map((f) => (f.id === fileId ? { ...f, content: newValue } : f)))
+    
+    // Mark file as modified if content changed from default
+    if (newValue !== DEFAULT_MD) {
+      setModifiedFiles(prev => new Set(prev).add(fileId))
+    } else {
+      setModifiedFiles(prev => {
+        const next = new Set(prev)
+        next.delete(fileId)
+        return next
+      })
+    }
   }, [activeFile?.id])
 
   // Toolbar insertion helpers
@@ -161,6 +181,11 @@ export default function App() {
     const id = activeFile?.id
     if (!id) return
     setFiles((prev) => prev.map((f) => (f.id === id ? { ...f, name } : f)))
+    
+    // Mark file as modified if name changed from empty
+    if (name.trim() !== '') {
+      setModifiedFiles(prev => new Set(prev).add(id))
+    }
   }, [activeFile?.id])
 
   const createFile = useCallback(() => {
@@ -170,6 +195,14 @@ export default function App() {
   }, [])
 
   const closeFile = useCallback((id: string) => {
+    // Check if file is modified and prompt is not disabled
+    if (modifiedFiles.has(id) && !disablePrompt) {
+      setFileToClose(id)
+      setShowCloseDialog(true)
+      return
+    }
+    
+    // Proceed with closing
     setFiles((prev) => {
       if (prev.length <= 1) return prev // keep at least one file
       const idx = prev.findIndex((f) => f.id === id)
@@ -181,7 +214,38 @@ export default function App() {
       }
       return next
     })
-  }, [activeFile?.id])
+    
+    // Clean up modified tracking
+    setModifiedFiles(prev => {
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
+  }, [activeFile?.id, modifiedFiles, disablePrompt])
+  
+  const confirmClose = useCallback(() => {
+    if (!fileToClose) return
+    
+    setFiles((prev) => {
+      if (prev.length <= 1) return prev
+      const idx = prev.findIndex((f) => f.id === fileToClose)
+      const next = prev.filter((f) => f.id !== fileToClose)
+      if (fileToClose === activeFile?.id) {
+        const neighbor = next[Math.max(0, idx - 1)] ?? next[0]
+        if (neighbor) setActiveId(neighbor.id)
+      }
+      return next
+    })
+    
+    setModifiedFiles(prev => {
+      const next = new Set(prev)
+      next.delete(fileToClose)
+      return next
+    })
+    
+    setShowCloseDialog(false)
+    setFileToClose(null)
+  }, [fileToClose, activeFile?.id])
 
   const exportMarkdown = useCallback(() => {
     const text = activeFile?.content ?? ''
@@ -230,7 +294,16 @@ export default function App() {
           {/* Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
             {files.map((f) => (
-              <div key={f.id} className={`shrink-0 group flex items-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-sm ${f.id === activeFile?.id ? 'bg-accent text-accent-foreground' : 'bg-background'} `}>
+              <div 
+                key={f.id} 
+                className={`shrink-0 group flex items-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-sm ${f.id === activeFile?.id ? 'bg-accent text-accent-foreground' : 'bg-background'} `}
+                onMouseDown={(e) => {
+                  if (e.button === 1) { // middle click
+                    e.preventDefault()
+                    closeFile(f.id)
+                  }
+                }}
+              >
                 <button
                   className="px-1 max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-left"
                   onClick={() => setActiveId(f.id)}
@@ -238,14 +311,15 @@ export default function App() {
                 >
                   {f.name?.trim() || 'New Document'}
                 </button>
-                <button
-                  className="opacity-60 hover:opacity-100"
-                  onClick={() => closeFile(f.id)}
-                  disabled={files.length <= 1}
-                  title={files.length <= 1 ? 'Cannot close last file' : 'Close'}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                {files.length > 1 && (
+                  <button
+                    className="opacity-60 hover:opacity-100"
+                    onClick={() => closeFile(f.id)}
+                    title="Close"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -285,6 +359,37 @@ export default function App() {
           </Button>
         </div>
       </header>
+      
+      {/* Close confirmation dialog */}
+      <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Close modified file?</DialogTitle>
+            <DialogDescription>
+              This file has unsaved changes. Are you sure you want to close it? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="disable-prompt" 
+              checked={disablePrompt}
+              onCheckedChange={(checked: boolean) => setDisablePrompt(checked)}
+            />
+            <Label htmlFor="disable-prompt" className="text-sm">
+              Don't ask again this session
+            </Label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCloseDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmClose}>
+              Close file
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
       <main className="flex h-[calc(100vh-52px)] w-full">
         <section className="h-full w-1/2 border-r">
           <div className="flex h-full w-full flex-col">
