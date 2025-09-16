@@ -5,9 +5,9 @@ import './index.css'
 
 const rootElement = document.getElementById('root')!
 
-// Respect prefers-color-scheme on first load
-const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-if (prefersDark) {
+// Hydrate theme early: prefer saved theme, else respect prefers-color-scheme
+const savedTheme = localStorage.getItem('mdstudio-theme') as 'light' | 'dark' | null
+if (savedTheme === 'dark' || (!savedTheme && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
 	document.documentElement.classList.add('dark')
 } else {
 	document.documentElement.classList.remove('dark')
