@@ -220,7 +220,7 @@ export default function App() {
           <MarkdownEditor value={activeFile?.content ?? ''} onChange={(v) => onChange(v)} />
         </section>
         <section className="h-full w-1/2 overflow-auto">
-          <div ref={previewRef} className={`markdown-body p-6 ${theme === 'dark' ? 'bg-[#0d1117] text-[#c9d1d9]' : 'bg-white text-black'}`}>
+          <div ref={previewRef} className={`markdown-body min-h-full p-6 ${theme === 'dark' ? 'bg-[#0d1117] text-[#c9d1d9]' : 'bg-gray-50 text-black'}`}>
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}
               rehypePlugins={[rehypeRaw, rehypeKatex]}
