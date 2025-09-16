@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import MarkdownEditor from '@/components/MarkdownEditor'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
@@ -77,6 +78,7 @@ export default function App() {
     return ''
   })
   const previewRef = useRef<HTMLDivElement | null>(null)
+  const editorRef = useRef<HTMLTextAreaElement | null>(null)
 
   // Removed Monaco theme setup
 
@@ -92,6 +94,52 @@ export default function App() {
     const newValue = value ?? ''
     setFiles((prev) => prev.map((f) => (f.id === (activeFile?.id ?? '') ? { ...f, content: newValue } : f)))
   }, [activeFile?.id])
+
+  // Toolbar insertion helpers
+  const wrapSelection = useCallback((before: string, after: string = before) => {
+    const ta = editorRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const value = activeFile?.content ?? ''
+    const selected = value.slice(start, end)
+    const next = value.slice(0, start) + before + selected + after + value.slice(end)
+    setFiles((prev) => prev.map((f) => (f.id === (activeFile?.id ?? '') ? { ...f, content: next } : f)))
+    queueMicrotask(() => {
+      const pos = start + before.length + selected.length
+      ta.focus()
+      ta.setSelectionRange(pos, pos)
+    })
+  }, [activeFile?.id, activeFile?.content])
+
+  const insertAtLineStart = useCallback((prefix: string) => {
+    const ta = editorRef.current
+    if (!ta) return
+    const value = activeFile?.content ?? ''
+    const cursor = ta.selectionStart
+    const lineStart = value.lastIndexOf('\n', Math.max(0, cursor - 1)) + 1
+    const next = value.slice(0, lineStart) + prefix + value.slice(lineStart)
+    setFiles((prev) => prev.map((f) => (f.id === (activeFile?.id ?? '') ? { ...f, content: next } : f)))
+    queueMicrotask(() => {
+      const pos = cursor + prefix.length
+      ta.focus()
+      ta.setSelectionRange(pos, pos)
+    })
+  }, [activeFile?.id, activeFile?.content])
+
+  const insertBlock = useCallback((block: string) => {
+    const ta = editorRef.current
+    if (!ta) return
+    const value = activeFile?.content ?? ''
+    const cursor = ta.selectionStart
+    const next = value.slice(0, cursor) + block + value.slice(cursor)
+    setFiles((prev) => prev.map((f) => (f.id === (activeFile?.id ?? '') ? { ...f, content: next } : f)))
+    queueMicrotask(() => {
+      const pos = cursor + block.length
+      ta.focus()
+      ta.setSelectionRange(pos, pos)
+    })
+  }, [activeFile?.id, activeFile?.content])
 
   // Persist files and activeId with debounce
   useEffect(() => {
@@ -217,7 +265,95 @@ export default function App() {
       </header>
       <main className="flex h-[calc(100vh-52px)] w-full">
         <section className="h-full w-1/2 border-r">
-          <MarkdownEditor value={activeFile?.content ?? ''} onChange={(v) => onChange(v)} />
+          <div className="flex h-full w-full flex-col">
+            <div className="flex items-center gap-1 border-b p-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => wrapSelection('**')} title="Bold"><span className="font-bold">B</span></Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Bold</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => wrapSelection('*')} title="Italic"><span className="italic">I</span></Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Italic</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertAtLineStart('# ')} title="Heading">H</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Heading</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => wrapSelection('~~')} title="Strikethrough"><span className="line-through">S</span></Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Strikethrough</TooltipContent>
+                </Tooltip>
+                <div className="mx-2 h-5 w-px bg-border" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertAtLineStart('- ')} title="Unordered list">•</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Unordered list</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertAtLineStart('1. ')} title="Ordered list">1.</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Ordered list</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertAtLineStart('- [ ] ')} title="Checklist">☑</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Checklist</TooltipContent>
+                </Tooltip>
+                <div className="mx-2 h-5 w-px bg-border" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertAtLineStart('> ')} title="Blockquote">“”</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Blockquote</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => wrapSelection('`')} title="Inline code">{`</>`}</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Inline code</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertBlock('\n\n```\n\n```\n')} title="Code block">{`{ }`}</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Code block</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertBlock('\n\n| Column | Column |\n| ------ | ------ |\n| Cell | Cell |\n\n')} title="Table">▦</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Table</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => wrapSelection('[', '](url)')} title="Link">🔗</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Link</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="sm" onClick={() => insertBlock('![](url)')} title="Image">🖼️</Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Image</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="flex-1">
+              <MarkdownEditor ref={editorRef} value={activeFile?.content ?? ''} onChange={(v) => onChange(v)} />
+            </div>
+          </div>
         </section>
         <section className="h-full w-1/2 overflow-auto">
           <div ref={previewRef} className={`markdown-body min-h-full p-6 ${theme === 'dark' ? 'bg-[#0d1117] text-[#c9d1d9]' : 'bg-gray-50 text-black'}`}>
