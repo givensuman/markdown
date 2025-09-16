@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import MarkdownEditor from '@/components/MarkdownEditor'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Sun, Moon, FileDown, FileText, Plus, X } from 'lucide-react'
+import { Sun, Moon, FileDown, FileText, Plus, X, Menu } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkMath from 'remark-math'
@@ -224,7 +225,7 @@ export default function App() {
     <div className="flex h-screen w-screen flex-col">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-[1400px] items-center gap-3 p-3">
-          <div className="font-medium">Markdown Studio</div>
+          <img src="/markdown_logo.svg" alt="Markdown" className="h-10 w-auto dark:invert mr-3" />
           <Separator orientation="vertical" className="h-6" />
           {/* Tabs */}
           <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
@@ -252,13 +253,34 @@ export default function App() {
             <Plus className="h-4 w-4" />
           </Button>
           <div className="ml-auto" />
-          <div className="flex items-center gap-2">
+          {/* Small screens: hamburger with actions */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button className="md:hidden" variant="ghost" size="icon" aria-label="Menu">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-64">
+              <SheetHeader>
+                <SheetTitle>Actions</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button variant="secondary" onClick={exportMarkdown} title="Export Markdown"><FileText className="mr-2 h-4 w-4" />Export Markdown</Button>
+                <Button onClick={exportPdf} title="Export PDF"><FileDown className="mr-2 h-4 w-4" />Export PDF</Button>
+                <Button variant="outline" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+                  {theme === 'dark' ? <Sun className="mr-2 h-4 w-4" /> : <Moon className="mr-2 h-4 w-4" />}Toggle theme
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          {/* Desktop: inline controls */}
+          <div className="hidden md:flex items-center gap-2">
             <Label htmlFor="filename" className="sr-only">Filename</Label>
             <Input id="filename" value={activeFile?.name ?? ''} onChange={(e) => setFilename(e.target.value)} className="w-[200px]" placeholder="New Document" />
             <Button variant="secondary" onClick={exportMarkdown} title="Export Markdown"><FileText className="mr-2 h-4 w-4" />MD</Button>
             <Button onClick={exportPdf} title="Export PDF"><FileDown className="mr-2 h-4 w-4" />PDF</Button>
           </div>
-          <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+          <Button className="hidden md:inline-flex" variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
             {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
         </div>
