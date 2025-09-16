@@ -1,9 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Editor, loader } from '@monaco-editor/react'
-// monaco-themes exports a JSON mapping; import as JSON
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import themeList from 'monaco-themes/themes/themelist.json'
+import MarkdownEditor from '@/components/MarkdownEditor'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Input } from '@/components/ui/input'
@@ -82,20 +78,7 @@ export default function App() {
   })
   const previewRef = useRef<HTMLDivElement | null>(null)
 
-  const monacoThemeName = theme === 'dark' ? 'GitHub Dark' : 'GitHub Light'
-
-  useEffect(() => {
-    const applyTheme = async () => {
-      const monaco = await loader.init()
-      const themeDataPath = (themeList as unknown)[monacoThemeName]
-      if (themeDataPath) {
-        const data = await fetch(themeDataPath).then((r) => r.json())
-        monaco.editor.defineTheme('github-theme', data)
-        monaco.editor.setTheme('github-theme')
-      }
-    }
-    applyTheme()
-  }, [monacoThemeName])
+  // Removed Monaco theme setup
 
   const activeFile = useMemo(() => files.find((f) => f.id === activeId) ?? files[0], [files, activeId])
 
@@ -234,19 +217,7 @@ export default function App() {
       </header>
       <main className="flex h-[calc(100vh-52px)] w-full">
         <section className="h-full w-1/2 border-r">
-          <Editor
-            height="100%"
-            defaultLanguage="markdown"
-            value={activeFile?.content ?? ''}
-            onChange={onChange}
-            options={{
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              fontSize: 14,
-              theme: 'github-theme',
-            }}
-          />
+          <MarkdownEditor value={activeFile?.content ?? ''} onChange={(v) => onChange(v)} />
         </section>
         <section className="h-full w-1/2 overflow-auto">
           <div ref={previewRef} className={`markdown-body p-6 ${theme === 'dark' ? 'bg-[#0d1117] text-[#c9d1d9]' : 'bg-white text-black'}`}>
