@@ -179,11 +179,11 @@ export default function App() {
           <div className="font-medium">Markdown Studio</div>
           <Separator orientation="vertical" className="h-6" />
           {/* Tabs */}
-          <div className="flex items-center gap-1 overflow-x-auto">
+          <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
             {files.map((f) => (
-              <div key={f.id} className={`group flex items-center gap-1 rounded-md border px-2 py-1 text-sm ${f.id === activeFile?.id ? 'bg-accent text-accent-foreground' : 'bg-background'} `}>
+              <div key={f.id} className={`shrink-0 group flex items-center gap-1 whitespace-nowrap rounded-md border px-2 py-1 text-sm ${f.id === activeFile?.id ? 'bg-accent text-accent-foreground' : 'bg-background'} `}>
                 <button
-                  className="px-1"
+                  className="px-1 max-w-[180px] overflow-hidden text-ellipsis whitespace-nowrap text-left"
                   onClick={() => setActiveId(f.id)}
                   title={f.name?.trim() || 'New Document'}
                 >
@@ -199,10 +199,10 @@ export default function App() {
                 </button>
               </div>
             ))}
-            <Button variant="ghost" size="icon" onClick={createFile} title="New file">
-              <Plus className="h-4 w-4" />
-            </Button>
           </div>
+          <Button className="shrink-0" variant="ghost" size="icon" onClick={createFile} title="New file">
+            <Plus className="h-4 w-4" />
+          </Button>
           <div className="ml-auto" />
           <div className="flex items-center gap-2">
             <Label htmlFor="filename" className="sr-only">Filename</Label>
