@@ -164,17 +164,30 @@ export default function App() {
 
   const exportPdf = useCallback(() => {
     if (!previewRef.current) return
+    const el = previewRef.current
+    const filename = `${(activeFile?.name?.trim() || activeFile?.id || 'document')}.pdf`
+
+    // Temporarily force light mode while exporting
+    const wasDark = document.documentElement.classList.contains('dark')
+    const prevClass = el.className
+    document.documentElement.classList.remove('dark')
+    el.className = 'markdown-body p-6 bg-white text-black'
+
     html2pdf()
       .set({
         margin: [10, 10],
-        filename: `${(activeFile?.name?.trim() || activeFile?.id || 'document')}.pdf`,
+        filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
       })
-      .from(previewRef.current)
+      .from(el)
       .save()
-  }, [activeFile?.name])
+      .finally(() => {
+        el.className = prevClass
+        if (wasDark) document.documentElement.classList.add('dark')
+      })
+  }, [activeFile?.name, activeFile?.id])
 
   return (
     <div className="flex h-screen w-screen flex-col">
