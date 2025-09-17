@@ -9,7 +9,7 @@ type FormattingToolbarProps = {
 
 export default function FormattingToolbar({ wrapSelection, insertAtLineStart, insertBlock }: FormattingToolbarProps) {
   return (
-    <div className="hidden lg:flex items-center gap-1 border-l pl-3">
+    <div className="hidden lg:flex items-center gap-1">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>

@@ -17,7 +17,7 @@ type FileTabsProps = {
 
 export default function FileTabs({ files, activeFile, onTabClick, onCloseTab, onCreateFile }: FileTabsProps) {
   return (
-    <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0">
+    <div className="flex items-center gap-1 overflow-x-auto flex-1 min-w-0 py-3">
       {files.map((f) => (
         <div 
           key={f.id} 
