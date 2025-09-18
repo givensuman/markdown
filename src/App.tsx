@@ -20,15 +20,15 @@ import { useExports } from '@/hooks/useExports'
 export default function App() {
   const { theme, setTheme } = useTheme()
   const { files, activeFile, setActiveId, updateFileContent, updateFileName, createFile, closeFile } = useFiles()
-  const { 
-    showCloseDialog, 
-    setShowCloseDialog, 
-    disablePrompt, 
-    setDisablePrompt, 
-    markFileModified, 
-    checkAndPromptClose, 
-    confirmClose, 
-    cleanupClosedFile 
+  const {
+    showCloseDialog,
+    setShowCloseDialog,
+    disablePrompt,
+    setDisablePrompt,
+    markFileModified,
+    checkAndPromptClose,
+    confirmClose,
+    cleanupClosedFile
   } = useFileModifications()
   const { previewRef, exportMarkdown, exportPdf } = useExports()
   const editorRef = useRef<HTMLTextAreaElement | null>(null)
@@ -57,7 +57,7 @@ export default function App() {
       try {
         textArea.focus()
         textArea.setSelectionRange(newStart, newEnd)
-      } catch {}
+      } catch (error) { console.error(error) }
     })
   }
 
@@ -84,7 +84,7 @@ export default function App() {
       try {
         textArea.focus()
         textArea.setSelectionRange(newStart, newEnd)
-      } catch {}
+      } catch (error) { console.error(error) }
     })
   }
 
@@ -92,7 +92,6 @@ export default function App() {
     const textArea = editorRef.current
     if (!textArea || !activeFile) return
     const original = activeFile.content ?? ''
-    const start = textArea.selectionStart ?? 0
     const end = textArea.selectionEnd ?? 0
     const updated = original.slice(0, end) + block + original.slice(end)
     handleContentChange(updated)
@@ -101,7 +100,7 @@ export default function App() {
       try {
         textArea.focus()
         textArea.setSelectionRange(caret, caret)
-      } catch {}
+      } catch (error) { console.error(error) }
     })
   }
 
@@ -129,7 +128,7 @@ export default function App() {
         <div className="mx-auto flex max-w-[1400px] items-center gap-3 p-3">
           <img src="/markdown_logo.svg" alt="Markdown" className="h-10 w-auto dark:invert mr-3" />
           <Separator orientation="vertical" className="h-6" />
-          
+
           <FileTabs
             files={files}
             activeFile={activeFile}
@@ -137,9 +136,9 @@ export default function App() {
             onCloseTab={handleCloseFile}
             onCreateFile={createFile}
           />
-          
+
           <div className="ml-auto" />
-          
+
           <HeaderControls
             activeFile={activeFile}
             theme={theme}
@@ -150,7 +149,7 @@ export default function App() {
           />
         </div>
       </header>
-      
+
       <CloseDialog
         open={showCloseDialog}
         onOpenChange={setShowCloseDialog}
@@ -158,7 +157,7 @@ export default function App() {
         disablePrompt={disablePrompt}
         onDisablePromptChange={setDisablePrompt}
       />
-      
+
       {/* Shared formatting toolbar above editor and preview */}
       <div className="border-b bg-background">
         <div className="mx-auto flex max-w-[1400px] items-center gap-3 p-2">

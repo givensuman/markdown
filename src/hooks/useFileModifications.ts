@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react'
-import type { FileDoc } from './useFiles'
 
 const DEFAULT_MD = `# Markdown Studio\n\n- Live preview on the right\n- Monaco editor on the left\n\nMath: $\\int_0^1 x^2 \\mathrm{d}x = \\tfrac{1}{3}$\n\n\n\n\n`
 
@@ -12,7 +11,7 @@ export function useFileModifications() {
   const markFileModified = useCallback((fileId: string, content: string, name: string) => {
     const isContentModified = content !== DEFAULT_MD
     const isNameModified = name.trim() !== ''
-    
+
     if (isContentModified || isNameModified) {
       setModifiedFiles(prev => new Set(prev).add(fileId))
     } else {
@@ -36,13 +35,13 @@ export function useFileModifications() {
 
   const confirmClose = useCallback(() => {
     if (!fileToClose) return
-    
+
     setModifiedFiles(prev => {
       const next = new Set(prev)
       next.delete(fileToClose)
       return next
     })
-    
+
     setShowCloseDialog(false)
     setFileToClose(null)
   }, [fileToClose])
