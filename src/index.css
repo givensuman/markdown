@@ -65,4 +65,51 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Dark mode styles for markdown preview */
+  .dark .markdown-body {
+    color: #e6edf3;
+    background-color: #0d1117;
+  }
+
+  .dark .markdown-body h1,
+  .dark .markdown-body h2,
+  .dark .markdown-body h3,
+  .dark .markdown-body h4,
+  .dark .markdown-body h5,
+  .dark .markdown-body h6 {
+    color: #e6edf3;
+  }
+
+  .dark .markdown-body a {
+    color: #79b8ff;
+  }
+
+  .dark .markdown-body code {
+    background-color: #161b22;
+    color: #e6edf3;
+  }
+
+  .dark .markdown-body pre {
+    background-color: #161b22;
+  }
+
+  .dark .markdown-body blockquote {
+    color: #c9d1d9;
+    border-left-color: #30363d;
+  }
+
+  .dark .markdown-body table tr {
+    background-color: #0d1117;
+    border-top: 1px solid #30363d;
+  }
+
+  .dark .markdown-body table tr:nth-child(2n) {
+    background-color: #161b22;
+  }
+
+  .dark .markdown-body table th,
+  .dark .markdown-body table td {
+    border: 1px solid #30363d;
+  }
 }

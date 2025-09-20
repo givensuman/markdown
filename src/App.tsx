@@ -12,10 +12,11 @@ import rehypeRaw from 'rehype-raw'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
 import 'github-markdown-css/github-markdown.css'
-import { useFiles } from '@/hooks/useFiles'
-import { useTheme } from '@/hooks/useTheme'
-import { useFileModifications } from '@/hooks/useFileModifications'
-import { useExports } from '@/hooks/useExports'
+ import { useFiles } from '@/hooks/useFiles'
+ import { useTheme } from '@/hooks/useTheme'
+ import { useFileModifications } from '@/hooks/useFileModifications'
+ import { useExports } from '@/hooks/useExports'
+ import type { editor } from 'monaco-editor'
 
 export default function App() {
   const { theme, setTheme } = useTheme()
@@ -31,7 +32,7 @@ export default function App() {
     cleanupClosedFile
   } = useFileModifications()
   const { previewRef, exportMarkdown, exportPdf } = useExports()
-  const editorRef = useRef<HTMLTextAreaElement | null>(null)
+   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
   const handleContentChange = (value?: string) => {
     const newValue = value ?? ''
@@ -40,69 +41,131 @@ export default function App() {
     markFileModified(fileId, newValue, activeFile?.name ?? '')
   }
 
-  const wrapSelection = (before: string, after?: string) => {
-    const textArea = editorRef.current
-    if (!textArea || !activeFile) return
-    const original = activeFile.content ?? ''
-    const start = textArea.selectionStart ?? 0
-    const end = textArea.selectionEnd ?? 0
-    const suffix = after ?? before
-    const selected = original.slice(start, end)
-    const updated = original.slice(0, start) + before + selected + suffix + original.slice(end)
-    handleContentChange(updated)
-    const newStart = start + before.length
-    const newEnd = end + before.length
-    // Restore selection to the original text inside the wrappers
-    requestAnimationFrame(() => {
-      try {
-        textArea.focus()
-        textArea.setSelectionRange(newStart, newEnd)
-      } catch (error) { console.error(error) }
-    })
-  }
+   const wrapSelection = (before: string, after?: string) => {
+     const editor = editorRef.current
+     if (!editor || !activeFile) return
+     const selection = editor.getSelection()
+     if (!selection) return
 
-  const insertAtLineStart = (prefix: string) => {
-    const textArea = editorRef.current
-    if (!textArea || !activeFile) return
-    const original = activeFile.content ?? ''
-    const start = textArea.selectionStart ?? 0
-    const end = textArea.selectionEnd ?? 0
+     const suffix = after ?? before
+     const range = {
+       startLineNumber: selection.startLineNumber,
+       startColumn: selection.startColumn,
+       endLineNumber: selection.endLineNumber,
+       endColumn: selection.endColumn
+     }
 
-    const lineStart = original.lastIndexOf('\n', Math.max(0, start - 1)) + 1
-    const selectionText = original.slice(lineStart, end)
-    const lines = selectionText.split('\n')
-    const prefixed = lines.map((line) => prefix + line).join('\n')
+     const textToInsert = before + suffix
+     const newStartColumn = selection.startColumn + before.length
+     const newEndColumn = selection.endColumn + before.length
 
-    const updated = original.slice(0, lineStart) + prefixed + original.slice(end)
-    handleContentChange(updated)
+     editor.executeEdits('wrap-selection', [{
+       range,
+       text: textToInsert,
+       forceMoveMarkers: true
+     }])
 
-    const addedPerLine = prefix.length
-    const numLines = lines.length
-    const newStart = start + (start - lineStart >= 0 ? addedPerLine : 0)
-    const newEnd = end + addedPerLine * numLines
-    requestAnimationFrame(() => {
-      try {
-        textArea.focus()
-        textArea.setSelectionRange(newStart, newEnd)
-      } catch (error) { console.error(error) }
-    })
-  }
+     // Restore selection to the original text inside the wrappers
+     requestAnimationFrame(() => {
+       try {
+         editor.focus()
+         editor.setSelection({
+           startLineNumber: selection.startLineNumber,
+           startColumn: newStartColumn,
+           endLineNumber: selection.endLineNumber,
+           endColumn: newEndColumn
+         })
+       } catch (error) { console.error(error) }
+     })
+   }
 
-  const insertBlock = (block: string) => {
-    const textArea = editorRef.current
-    if (!textArea || !activeFile) return
-    const original = activeFile.content ?? ''
-    const end = textArea.selectionEnd ?? 0
-    const updated = original.slice(0, end) + block + original.slice(end)
-    handleContentChange(updated)
-    const caret = end + block.length
-    requestAnimationFrame(() => {
-      try {
-        textArea.focus()
-        textArea.setSelectionRange(caret, caret)
-      } catch (error) { console.error(error) }
-    })
-  }
+   const insertAtLineStart = (prefix: string) => {
+     const editor = editorRef.current
+     if (!editor || !activeFile) return
+
+     const selection = editor.getSelection()
+     if (!selection) return
+
+     const model = editor.getModel()
+     if (!model) return
+
+     const startLine = selection.startLineNumber
+     const endLine = selection.endLineNumber
+
+     // Get all lines in the selection
+     const lines: string[] = []
+     for (let i = startLine; i <= endLine; i++) {
+       lines.push(model.getLineContent(i))
+     }
+
+     // Add prefix to each line
+     const prefixedLines = lines.map((line) => prefix + line)
+
+     // Create edits for each line
+     const edits = prefixedLines.map((line, index) => ({
+       range: {
+         startLineNumber: startLine + index,
+         startColumn: 1,
+         endLineNumber: startLine + index,
+         endColumn: lines[index].length + 1
+       },
+       text: line
+     }))
+
+     editor.executeEdits('insert-at-line-start', edits)
+
+     // Update selection
+     const newStartColumn = selection.startColumn + prefix.length
+     const newEndColumn = selection.endColumn + prefix.length
+
+     requestAnimationFrame(() => {
+       try {
+         editor.focus()
+         editor.setSelection({
+           startLineNumber: selection.startLineNumber,
+           startColumn: newStartColumn,
+           endLineNumber: selection.endLineNumber,
+           endColumn: newEndColumn
+         })
+       } catch (error) { console.error(error) }
+     })
+   }
+
+   const insertBlock = (block: string) => {
+     const editor = editorRef.current
+     if (!editor || !activeFile) return
+
+     const selection = editor.getSelection()
+     if (!selection) return
+
+     const range = {
+       startLineNumber: selection.endLineNumber,
+       startColumn: selection.endColumn,
+       endLineNumber: selection.endLineNumber,
+       endColumn: selection.endColumn
+     }
+
+     editor.executeEdits('insert-block', [{
+       range,
+       text: block,
+       forceMoveMarkers: true
+     }])
+
+     // Move cursor to end of inserted block
+     const lines = block.split('\n')
+     const lastLineLength = lines[lines.length - 1].length
+     const newPosition = {
+       lineNumber: selection.endLineNumber + lines.length - 1,
+       column: selection.endColumn + lastLineLength
+     }
+
+     requestAnimationFrame(() => {
+       try {
+         editor.focus()
+         editor.setPosition(newPosition)
+       } catch (error) { console.error(error) }
+     })
+   }
 
   const handleFilenameChange = (name: string) => {
     const fileId = activeFile?.id
@@ -174,7 +237,7 @@ export default function App() {
           <MarkdownEditor ref={editorRef} value={activeFile?.content ?? ''} onChange={handleContentChange} />
         </section>
         <section className="h-full w-1/2 overflow-auto">
-          <div ref={previewRef} className={`markdown-body min-h-full p-6 ${theme === 'dark' ? 'bg-[#0d1117] text-[#c9d1d9]' : 'bg-gray-50 text-black'}`}>
+          <div ref={previewRef} className="markdown-body min-h-full p-6">
             <ReactMarkdown
               remarkPlugins={[remarkGfm, remarkMath]}
               rehypePlugins={[rehypeRaw, rehypeKatex]}
