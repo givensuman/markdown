@@ -11,7 +11,7 @@ import remarkMath from 'remark-math'
 import rehypeRaw from 'rehype-raw'
 import rehypeKatex from 'rehype-katex'
 import 'katex/dist/katex.min.css'
-import 'github-markdown-css/github-markdown.css'
+import 'github-markdown-css/github-markdown-dark.css'
  import { useFiles } from '@/hooks/useFiles'
  import { useTheme } from '@/hooks/useTheme'
  import { useFileModifications } from '@/hooks/useFileModifications'
@@ -236,16 +236,16 @@ export default function App() {
         <section className="h-full w-1/2 border-r">
           <MarkdownEditor ref={editorRef} value={activeFile?.content ?? ''} onChange={handleContentChange} />
         </section>
-        <section className="h-full w-1/2 overflow-auto">
-          <div ref={previewRef} className="markdown-body min-h-full p-6">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeRaw, rehypeKatex]}
-            >
-              {activeFile?.content ?? ''}
-            </ReactMarkdown>
-          </div>
-        </section>
+         <section className="h-full w-1/2 overflow-auto bg-background">
+           <div ref={previewRef} className="markdown-body min-h-full p-6">
+             <ReactMarkdown
+               remarkPlugins={[remarkGfm, remarkMath]}
+               rehypePlugins={[rehypeRaw, rehypeKatex]}
+             >
+               {activeFile?.content ?? ''}
+             </ReactMarkdown>
+           </div>
+         </section>
       </main>
     </div>
   )
